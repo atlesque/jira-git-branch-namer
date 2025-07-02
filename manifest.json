@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Atlassian Branch Name Helper",
+  "name": "Jira git branch namer",
   "version": "1.0",
   "permissions": ["scripting"],
   "content_scripts": [
