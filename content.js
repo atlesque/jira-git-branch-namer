@@ -1,5 +1,5 @@
 // Utility functions
-const log = (...args) => console.log('[BranchHelper]', ...args);
+const log = (...args) => console.log('[JiraGitBranchNamer]', ...args);
 
 // Container watcher to detect when the container appears in DOM
 let lastFoundContainer = null;
@@ -8,10 +8,13 @@ const watchForContainer = () => {
     const observer = new MutationObserver(() => {
         const container = document.querySelector(SELECTORS.CONTAINER);
         
-        // Only log if container is found and it's different from the last one
+        // Only process if container is found and it's different from the last one
         if (container && container !== lastFoundContainer) {
-            console.log('[BranchHelper] Container found in DOM');
+            log('Git branch container found');
             lastFoundContainer = container;
+            
+            // Setup custom copy functionality when container appears
+            setTimeout(setupCustomCopy, CONFIG.SETUP_DELAY);
         }
         
         // Reset if container is no longer in DOM
@@ -29,8 +32,9 @@ const watchForContainer = () => {
     // Also check immediately in case container is already present
     const container = document.querySelector(SELECTORS.CONTAINER);
     if (container) {
-        console.log('[BranchHelper] Container found in DOM');
+        log('Git branch container');
         lastFoundContainer = container;
+        setTimeout(setupCustomCopy, CONFIG.SETUP_DELAY);
     }
 };
 
@@ -128,23 +132,14 @@ const setupCustomCopy = () => {
     updateInputValue(input, finalCommand);
 };
 
-const handleCreateBranchClick = (e) => {
-    const btn = e.target.closest(SELECTORS.CREATE_BRANCH_DROPDOWN);
-    if (btn) {
-        setTimeout(setupCustomCopy, CONFIG.SETUP_DELAY);
-    }
-};
-
-const initBranchHelper = () => {
-    log('Initializing Branch Helper');
-    document.addEventListener('click', handleCreateBranchClick);
-    
+const initBranchHelper = () => {    
     // Start watching for container when DOM is ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', watchForContainer);
     } else {
         watchForContainer();
     }
+    log('Initialized Jira Git Branch Namer');
 };
 
 initBranchHelper();
