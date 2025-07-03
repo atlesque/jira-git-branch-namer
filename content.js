@@ -22,8 +22,9 @@ const setupCustomCopy = () => {
     }
 
     const branch = match[1];
-    const issueType = document.querySelector('[data-testid="issue.issue-type.lozenge"]')?.innerText || '';
-    const prefix = /bug/i.test(issueType) ? 'bugfix/' : 'feature/';
+    const issueTypeElement = document.querySelector('[data-testid="issue-view-foundation.noneditable-issue-type.button"]');
+    const ariaLabel = issueTypeElement?.getAttribute('aria-label') || '';
+    const prefix = ariaLabel.includes('Bug') ? 'bugfix/' : 'feature/';
     const newBranch = branch.startsWith(prefix) ? branch : `${prefix}${branch}`;
     const finalCommand = `git checkout -b ${newBranch}`;
 
