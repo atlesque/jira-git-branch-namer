@@ -1,6 +1,39 @@
 // Utility functions
 const log = (...args) => console.log('[BranchHelper]', ...args);
 
+// Container watcher to detect when the container appears in DOM
+let lastFoundContainer = null;
+
+const watchForContainer = () => {
+    const observer = new MutationObserver(() => {
+        const container = document.querySelector(SELECTORS.CONTAINER);
+        
+        // Only log if container is found and it's different from the last one
+        if (container && container !== lastFoundContainer) {
+            console.log('[BranchHelper] Container found in DOM');
+            lastFoundContainer = container;
+        }
+        
+        // Reset if container is no longer in DOM
+        if (!container && lastFoundContainer) {
+            lastFoundContainer = null;
+        }
+    });
+
+    // Start observing DOM changes
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+
+    // Also check immediately in case container is already present
+    const container = document.querySelector(SELECTORS.CONTAINER);
+    if (container) {
+        console.log('[BranchHelper] Container found in DOM');
+        lastFoundContainer = container;
+    }
+};
+
 const getElement = (selector, parent = document) => {
     const element = parent.querySelector(selector);
     if (!element) {
@@ -105,6 +138,13 @@ const handleCreateBranchClick = (e) => {
 const initBranchHelper = () => {
     log('Initializing Branch Helper');
     document.addEventListener('click', handleCreateBranchClick);
+    
+    // Start watching for container when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', watchForContainer);
+    } else {
+        watchForContainer();
+    }
 };
 
 initBranchHelper();
