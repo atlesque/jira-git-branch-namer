@@ -1,20 +1,4 @@
-const SELECTORS = {
-    CONTAINER: '[data-testid="platform-copy-text-field.textfield---container"]',
-    COPY_BUTTON: '[data-testid="platform-copy-text-field.styled-button-"]',
-    ISSUE_TYPE: '[data-testid="issue-view-foundation.noneditable-issue-type.button"]',
-    CREATE_BRANCH_DROPDOWN: '[aria-controls="create-branch-dropdown"]'
-};
-
-const CONFIG = {
-    SETUP_DELAY: 300,
-    RESTORE_DELAY: 100,
-    BRANCH_PATTERN: /git checkout -b (.+)/,
-    PREFIXES: {
-        BUG: 'bugfix/',
-        FEATURE: 'feature/'
-    }
-};
-
+// Utility functions
 const log = (...args) => console.log('[BranchHelper]', ...args);
 
 const getElement = (selector, parent = document) => {
