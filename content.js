@@ -1,8 +1,83 @@
+const SELECTORS = {
+    CONTAINER: '[data-testid="platform-copy-text-field.textfield---container"]',
+    COPY_BUTTON: '[data-testid="platform-copy-text-field.styled-button-"]',
+    ISSUE_TYPE: '[data-testid="issue-view-foundation.noneditable-issue-type.button"]',
+    CREATE_BRANCH_DROPDOWN: '[aria-controls="create-branch-dropdown"]'
+};
+
+const CONFIG = {
+    SETUP_DELAY: 300,
+    RESTORE_DELAY: 100,
+    BRANCH_PATTERN: /git checkout -b (.+)/,
+    PREFIXES: {
+        BUG: 'bugfix/',
+        FEATURE: 'feature/'
+    }
+};
+
 const log = (...args) => console.log('[BranchHelper]', ...args);
 
+const getElement = (selector, parent = document) => {
+    const element = parent.querySelector(selector);
+    if (!element) {
+        log(`Error: Element not found with selector: ${selector}`);
+    }
+    return element;
+};
+
+const getIssueType = () => {
+    const issueTypeElement = getElement(SELECTORS.ISSUE_TYPE);
+    if (!issueTypeElement) return null;
+    
+    const ariaLabel = issueTypeElement.getAttribute('aria-label') || '';
+    return ariaLabel.includes('Bug') ? 'bug' : 'feature';
+};
+
+const extractBranchName = (gitCommand) => {
+    const match = gitCommand.match(CONFIG.BRANCH_PATTERN);
+    return match ? match[1] : null;
+};
+
+const generateBranchName = (originalBranch, issueType) => {
+    const prefix = issueType === 'bug' ? CONFIG.PREFIXES.BUG : CONFIG.PREFIXES.FEATURE;
+    return originalBranch.startsWith(prefix) ? originalBranch : `${prefix}${originalBranch}`;
+};
+
+const copyToClipboard = async (text) => {
+    try {
+        await navigator.clipboard.writeText(text);
+        return true;
+    } catch (err) {
+        log('Error: Failed to copy to clipboard', err);
+        return false;
+    }
+};
+
+const updateInputValue = (input, value) => {
+    input.value = value;
+    input.select();
+};
+
+const createCustomCopyButton = (originalButton, finalCommand, input) => {
+    const newButton = originalButton.cloneNode(true);
+    originalButton.replaceWith(newButton);
+
+    newButton.addEventListener('click', async () => {
+        await copyToClipboard(finalCommand);
+        
+        // Restore our value after Jira resets it
+        setTimeout(() => {
+            updateInputValue(input, finalCommand);
+        }, CONFIG.RESTORE_DELAY);
+    });
+
+    return newButton;
+};
+
 const setupCustomCopy = () => {
-    const container = document.querySelector('[data-testid="platform-copy-text-field.textfield---container"]');
-    const button = document.querySelector('[data-testid="platform-copy-text-field.styled-button-"]');
+    const container = getElement(SELECTORS.CONTAINER);
+    const button = getElement(SELECTORS.COPY_BUTTON);
+    
     if (!container || !button) {
         log('Error: Container or button not found');
         return;
@@ -15,45 +90,37 @@ const setupCustomCopy = () => {
     }
 
     const original = input.value.trim();
-    const match = original.match(/git checkout -b (.+)/);
-    if (!match) {
+    const branchName = extractBranchName(original);
+    
+    if (!branchName) {
         log('Error: No match for branch name in input');
         return;
     }
 
-    const branch = match[1];
-    const issueTypeElement = document.querySelector('[data-testid="issue-view-foundation.noneditable-issue-type.button"]');
-    const ariaLabel = issueTypeElement?.getAttribute('aria-label') || '';
-    const prefix = ariaLabel.includes('Bug') ? 'bugfix/' : 'feature/';
-    const newBranch = branch.startsWith(prefix) ? branch : `${prefix}${branch}`;
+    const issueType = getIssueType();
+    if (!issueType) {
+        log('Error: Could not determine issue type');
+        return;
+    }
+
+    const newBranch = generateBranchName(branchName, issueType);
     const finalCommand = `git checkout -b ${newBranch}`;
 
-    // Replace the button to override the default click
-    const newButton = button.cloneNode(true);
-    button.replaceWith(newButton);
+    createCustomCopyButton(button, finalCommand, input);
 
-    newButton.addEventListener('click', () => {
-        navigator.clipboard.writeText(finalCommand).then(() => {
-            // Success - no logging needed
-        }).catch(err => {
-            log('Error: Failed to copy to clipboard', err);
-        });
-
-        // Restore our value after Jira resets it
-        setTimeout(() => {
-            input.value = finalCommand;
-            input.select();
-        }, 100);
-    });
-
-    // Set visible value initially
-    input.value = finalCommand;
-    input.select();
+    updateInputValue(input, finalCommand);
 };
 
-document.addEventListener('click', (e) => {
-    const btn = e.target.closest('[aria-controls="create-branch-dropdown"]');
+const handleCreateBranchClick = (e) => {
+    const btn = e.target.closest(SELECTORS.CREATE_BRANCH_DROPDOWN);
     if (btn) {
-        setTimeout(setupCustomCopy, 300);
+        setTimeout(setupCustomCopy, CONFIG.SETUP_DELAY);
     }
-});
+};
+
+const initBranchHelper = () => {
+    log('Initializing Branch Helper');
+    document.addEventListener('click', handleCreateBranchClick);
+};
+
+initBranchHelper();
